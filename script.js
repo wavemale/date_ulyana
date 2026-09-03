@@ -1,5 +1,43 @@
 const card = document.getElementById("card");
 
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/xzebgqnp";
+
+async function sendDateResponse(date, time, type, place) {
+    const formData = new URLSearchParams();
+
+    formData.append("name", "Ульяна");
+    formData.append("date", formatDate(date));
+    formData.append("time", time);
+    formData.append("activity", type);
+    formData.append("place", place || "Не указано");
+    formData.append("consent", "Согласна ❤️");
+    formData.append("subject", "❤️ Ульяна согласилась на свидание");
+
+    formData.append(
+        "message",
+        `Ульяна согласилась на свидание!
+
+Дата: ${formatDate(date)}
+Время: ${time}
+Что будем делать: ${type}
+Место встречи: ${place || "Не указано"}`
+    );
+
+    const response = await fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: formData.toString()
+    });
+
+    if (!response.ok) {
+        throw new Error("Не удалось отправить данные в Formspree");
+    }
+}
+
+
 // =========================
 // МУЗЫКА
 // =========================
@@ -331,7 +369,6 @@ window.addEventListener(
 
 function showDatePlanner() {
 
-    // Убираем убежавшую кнопку "Нет"
     removeNoButton();
 
     card.innerHTML = `
@@ -441,20 +478,9 @@ function showDatePlanner() {
     const timeInput =
         document.getElementById("timeInput");
 
-
     const today =
         new Date();
 
-
-    /*
-     * Ищем ближайшую субботу.
-     *
-     * В JavaScript:
-     * 0 = воскресенье
-     * 1 = понедельник
-     * ...
-     * 6 = суббота
-     */
 
     const dayOfWeek =
         today.getDay();
@@ -463,11 +489,6 @@ function showDatePlanner() {
     let daysUntilSaturday =
         (6 - dayOfWeek + 7) % 7;
 
-
-    /*
-     * Если сегодня уже суббота,
-     * считаем сегодняшнюю субботу.
-     */
 
     const saturday =
         new Date(today);
@@ -496,17 +517,9 @@ function showDatePlanner() {
         `${saturdayYear}-${saturdayMonth}-${saturdayDay}`;
 
 
-    // Минимальная дата = суббота
     dateInput.min =
         saturdayString;
 
-
-    /*
-     * Если выбираем субботу,
-     * время должно быть не раньше 14:00.
-     *
-     * Для остальных дней ограничение снимается.
-     */
 
     function updateTimeRestriction() {
 
@@ -517,16 +530,11 @@ function showDatePlanner() {
 
             timeInput.min = "14:00";
 
-            /*
-             * Если пользователь уже выбрал
-             * время раньше 14:00,
-             * сбрасываем его.
-             */
-
             if (
                 timeInput.value &&
                 timeInput.value < "14:00"
             ) {
+
                 timeInput.value = "";
             }
 
@@ -564,9 +572,11 @@ function showDatePlanner() {
 
                     dateButtons.forEach(
                         btn => {
+
                             btn.classList.remove(
                                 "selected"
                             );
+
                         }
                     );
 
@@ -632,12 +642,6 @@ function showDatePlanner() {
                     return;
                 }
 
-
-                /*
-                 * Дополнительная защита:
-                 * если выбрана суббота,
-                 * время не может быть раньше 14:00.
-                 */
 
                 if (
                     date === saturdayString &&
@@ -753,24 +757,65 @@ function showContract(
         .getElementById("agreeButton")
         .addEventListener(
             "click",
-            () => {
+            async () => {
 
-                createHearts();
-                createConfetti();
+                const agreeButton =
+                    document.getElementById(
+                        "agreeButton"
+                    );
 
-                setTimeout(
-                    () => {
+                agreeButton.disabled = true;
 
-                        showConfirmation(
-                            date,
-                            time,
-                            type,
-                            place
-                        );
+                agreeButton.textContent =
+                    "Отправляю ответ... ❤️";
 
-                    },
-                    700
-                );
+
+                try {
+
+                    await sendDateResponse(
+                        date,
+                        time,
+                        type,
+                        place
+                    );
+
+
+                    createHearts();
+                    createConfetti();
+
+
+                    setTimeout(
+                        () => {
+
+                            showConfirmation(
+                                date,
+                                time,
+                                type,
+                                place
+                            );
+
+                        },
+                        700
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "Ошибка отправки Formspree:",
+                        error
+                    );
+
+
+                    agreeButton.disabled = false;
+
+                    agreeButton.textContent =
+                        "☑️ Согласна ❤️";
+
+
+                    alert(
+                        "Не получилось отправить ответ 😔 Проверь интернет и попробуй ещё раз."
+                    );
+                }
             }
         );
 }
