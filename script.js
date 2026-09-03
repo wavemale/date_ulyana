@@ -3,7 +3,7 @@ const card = document.getElementById("card");
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/xzebgqnp";
 
 async function sendDateResponse(date, time, type, place) {
-    const formData = new URLSearchParams();
+    const formData = new FormData();
 
     formData.append("name", "Ульяна");
     formData.append("date", formatDate(date));
@@ -23,17 +23,21 @@ async function sendDateResponse(date, time, type, place) {
 Место встречи: ${place || "Не указано"}`
     );
 
-    const response = await fetch(FORMSPREE_ENDPOINT, {
-        method: "POST",
-        headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: formData.toString()
-    });
+    const response = await fetch(
+        FORMSPREE_ENDPOINT,
+        {
+            method: "POST",
+            body: formData,
+            headers: {
+                "Accept": "application/json"
+            }
+        }
+    );
 
     if (!response.ok) {
-        throw new Error("Не удалось отправить данные в Formspree");
+        const errorText = await response.text();
+        console.error("Formspree:", errorText);
+        throw new Error("Formspree не принял отправку");
     }
 }
 
